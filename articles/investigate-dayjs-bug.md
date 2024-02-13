@@ -3,7 +3,7 @@ title: "dayjsのtzのバグを調べてみた"
 emoji: "🐕"
 type: "tech"
 topics: ['dayjs', 'javascript']
-published: false
+published: true
 publication_name: "backtech"
 ---
 # 気になる挙動
