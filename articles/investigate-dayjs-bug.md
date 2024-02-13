@@ -4,6 +4,7 @@ emoji: "🐕"
 type: "tech"
 topics: ['dayjs', 'javascript']
 published: false
+publication_name: "backtech"
 ---
 # 気になる挙動
 tzとstartOfを組み合わせると、特定のTZとシステムロケールの組み合わせで、想定外の動きをすることに気づきました。
