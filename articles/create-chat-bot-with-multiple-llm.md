@@ -44,7 +44,7 @@ localのsupabaseのGUIでスキーマをいじる -> drizzle pull という方�
 ドキュメントも充実しており、だいたいの問題は解決した。
 
 ### その他UIとか
-あまりこだわりはないので、claudeに進められるがままにshadcnとtailwindを使用。
+shadcnとtailwindを使用。
 markdownのレンダリングはreact-markdown と react-syntax-highlighterを使用。
 
 # ハマったところなど
@@ -53,14 +53,30 @@ markdownのレンダリングはreact-markdown と react-syntax-highlighterを�
 Cloud Run に IAP というものを設定すると、自分のgoogleアカウントでログインした場合のみアクセスできるよう、制限できる。
 https://cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run?hl=ja 
 Cloud Run へのアクセスをIAPがキャッチして、認証してくれるみたい。これはCloud Run作成時に自動で作られる ~.run.app というURLにも適用される。
-ただこのIAPを有効化するには、組織というのが必要になる。組織を作るには、Cloud Identity や Google Workspaceに登録する必要があるみたいで、個人のgoogleアカウントで作ってるGoogle Cloudプロジェクトだとダメだった。
+ただこのIAPを有効化するには、組織というのが必要になる。組織を作るには、Cloud Identity や Google Workspaceに登録する必要があり、個人のgoogleアカウントで作ってるGoogle Cloudプロジェクトだとダメだった。
 Cloud Identityは無料で使えるが、ドメインを登録する必要があるので、その費用はかかる。
 以下のブログがわかりやすかった。
 https://blog.g-gen.co.jp/entry/google-cloud-organization-explained
 
 ## チャットの新規作成からstreaming開始までの流れ
-チャットの新規作成画面 -> streaming開始
+チャットの新規作成画面 -> チャット詳細画面 -> streaming開始というフローが少々面倒だった。
+チャットの新規作成でメッセージを送信したときにLLMにリクエストを投げると、streamingが開始されるのだが、URLは変えたいのでリダイレクトするとなると、streamingが中断されてしまう。
+よって、チャットの新規作成時にはstreamingを開始せずにユーザーのメッセージをDBに保存だけして、詳細画面に遷移したときに最後のメッセージがユーザーならstreamingを開始するというフローにした。
+streamingの開始にはai-sdkのuseChatの返り値にregenerate関数があるので、それを使った。
+勢い余って2重でgetしてしまうと、2重でLLMにリクエストを送ってしまいそうだが、まあ本当に防ぎたいならDBの排他制御とかやればいいだろうと思っている。
 
 ## react markdownのレンダリングが重い
+コードブロックを含む長い文章をstreamingすると、chunkごとに再レンダリングが走り、おそらくreact markdown のパースがその度に走るので、画面が固まることがあった。
+これはai-sdkのドキュメントに解決策があり、その通りやればできた。
+https://ai-sdk.dev/cookbook/next/markdown-chatbot-with-memoization
+marked というmarkdownパーサーを使って、chunkごとにパースしてmemo化しておくという方法。
 
-## 自分のメッセージを送信したらそれを一番上に表示するやつ
+## 開発環境では実際にLLMにリクエストを送りたくない
+これもai-sdkの https://ai-sdk.dev/docs/ai-sdk-core/testing を参考に、streamingをmockすることで解決した。
+ダミーデータの生成は、適当なメッセージを.txtに保存して、それをJavaScriptで読み込んで適当な長さのchunkに分割して sdkに渡せばOK。
+
+## 自分のメッセージを送信したらそれを画面一番上に表示するやつ
+地味どうやってるかわからなかったのがこれで、いろんなサイトを見て、どうやら最終メッセージの下に非表示で高さを動的に設定できるdivを仕込んで、ちょうどユーザーのメッセージが上に来るように高さを調整し続ければ良さそうという結論に至った。
+コードでいうとこんな感じ。
+色々余計なこともしてそうだが、とりあえず動いている。
+https://github.com/inoue723/llm-chat/blob/9f8aa34749895c176bc0bef688c3684c9a485ee8/apps/web/app/routes/chats/%24chatId.tsx#L85-L147
