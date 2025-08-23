@@ -1,9 +1,9 @@
 ---
 title: "自分専用の複数LLM対応チャットボットを作った"
-emoji: "👏"
+emoji: "🥳"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["JavaScript", "TypeScript", "aisdk", "cloudrun"]
-published: false
+published: true
 ---
 
 複数LLMを切り替えて使えるチャットボット(ChatGPTクローン)はあまりない気がしていて、あっても自前のapiKeyを使えないものがほとんどかと思う。
