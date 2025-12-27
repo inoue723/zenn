@@ -21,7 +21,7 @@ PR作成 -> github actions起動 -> PlanetScaleのbranchを作成 -> drizzleでs
 ### PlanetScale
 改悪してから全くwatchしてなかったが、最近postgresが使えるようになった。
 また、最安で1DBにつき5$/月のプランが出たので、supabaseよりも安くbranch機能が使える。
-（ただしデプロイリクエストには対応していない。これが便利だったのだが。）
+（ただしpostgresはデプロイリクエストには対応していない。これが便利だったのだが。）
 https://planetscale.com/blog/5-dollar-planetscale-is-here
 
 branchはずっと稼働してると追加で5$/月かかるのだが、大体すぐ削除するのでそこまでコストかからないはず。
