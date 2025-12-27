@@ -3,7 +3,7 @@ title: "PlanetScaleとCloud RunでPRごとのpreview環境を作る"
 emoji: "🐷"
 type: "tech"
 topics: ["planetscale", "cloudrun", "TypeScript"]
-published: false
+published: true
 ---
 
 # 背景
