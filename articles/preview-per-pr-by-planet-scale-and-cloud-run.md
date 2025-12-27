@@ -312,13 +312,13 @@ preview環境のURLはPRごとに動的に変わるが、Google認証に設定�
 フローとしては、
 1. preview環境でログイン
 2. googleにリダイレクトして認証
-3. 本番サーバーにリダイレクト
+3. 本番サーバーにリダイレクト。
 4. preview環境にリダイレクト
 
 となる。
-preview環境のログインに本番サーバーを経由して大丈夫?と思ったが、本番環境ではこのproxy自体が無効化される仕組みになっている(具体的にはproductionURL=currentURLの場合は無効化)ので、あくまでpreview環境だけ特殊な動作をするという意味で問題はなさそうだった。
+preview環境のログインに本番サーバーを経由して大丈夫?と思ったが、本番環境ではこのproxy自体が無効化される仕組みになっている(具体的にはproductionURL=currentURLの場合は無効化)ので、あくまでpreview環境だけ特殊な動作をするという意味で問題はなさそうだった。 
 
-ただしこのplugin、本番とpreviewで同じDBを使う想定になってるらしく、DBを分けてしまうと認証ができない。具体的には3の本番サーバーにリダイレクトした時点で本番DBにuser accountが作られる。
+ただしこのplugin、本番とpreviewで同じDBを使う想定になってるらしく、DBを分けてしまうと認証ができない。具体的には3の本番サーバーにリダイレクトした時点で本番DBにuser accountが作られる。そのためDBが分かれていると、4でpreview環境にリダイレクトされたときにDBにデータがないので認証されていない状態になる。
 これでは目的を達成できないので、すこしいじることにした。
 
 ### oauth-proxy pluginを改造する
@@ -721,7 +721,68 @@ export const oAuthRedirectProxy = (opts: OAuthRedirectProxyOptions) => {
 3. 本番サーバーにリダイレクトされ、暗号化されたstateを復元して、リダイレクト先を決定
 4. preview環境にリダイレクトし、通常のbetter-authの認証フローに載せる
 
-この自作pluginや元のoauth-proxy pluginにも言えることだが、暗号化に使うsecretが本番とpreviewで同じである必要がある。これはリスクがあるので、本番運用するなら、検証環境のマスターのようなサーバーを立てておいて、それをproxyとして使うのが良いだろう。
+このpluginをbetterAuthの初期化時に設定する。ここで注意点としては、storeStateStrategyをcookieにすることだ。
+stoteStateStrategyとは、oauthのstateをDBに保存するか、cookieにするか選べるオプションで、databaseAdapterを指定している場合はデフォルトでdatabaseになっている。これだとDBを本番とpreviewで共通にしていないとstateが共有できないので、cookieにする。これはpreview環境のみで良いので、isPreviewで判定している。
+```ts
+import { db } from "@repo/db";
+import * as schema from "@repo/db/schema";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { env } from "./env";
+import { oAuthRedirectProxy } from "./oauth-proxy-plugin";
+
+const isPreview = env.NEXT_PUBLIC_BASE_URL !== env.PRODUCTION_URL;
+
+export const auth = betterAuth({
+  experimental: { joins: true },
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema,
+  }),
+  plugins: [
+    oAuthRedirectProxy({
+      productionURL: env.PRODUCTION_URL,
+    }),
+  ],
+  // previewでsign in -> 本番にproxy -> previewにredirectを実現するために必要。
+  // 本番とpreviewでDBが異なるため、DBにstateを保存する方式だと実現できない。
+  // そのため、previewのみcookieにstateを保存する設定を有効にする。
+  // 本番のsign inではproxyが無効なのでDBに保存で問題ない。
+  ...(isPreview
+    ? {
+        account: {
+          storeAccountCookies: true,
+          storeStateStrategy: "cookie",
+        },
+      }
+    : {}),
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      accessType: "offline",
+      prompt: "select_account consent",
+      redirectURI: new URL(
+        "/api/auth/callback/google",
+        env.PRODUCTION_URL,
+      ).toString(),
+    },
+  },
+  secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.NEXT_PUBLIC_BASE_URL,
+  trustedOrigins: [
+    "http://localhost:3000",
+    env.PRODUCTION_URL,
+    // cloud run preview URL pattern
+    `https://*---${new URL(env.PREVIEW_URL).host}`,
+  ],
+});
+
+```
+
+:::message
+この自作pluginや元のoauth-proxy pluginにも言えることだが、暗号化に使うsecretが本番とpreviewで同じである必要がある。これはリスクがあるので、本番運用するなら、検証環境のマスターのようなサーバーを常時立てておいて、それをproxyとして使うのが良いだろう。（それやるならシンプルなproxyサーバーを立てるだけでいいだろとは思う）
+:::
 
 ## cleanupのworkflowを作成する
 コストがかからないよう、PRがcloseされたらPlanetScaleのbranchを削除するワークフローを作成する。
