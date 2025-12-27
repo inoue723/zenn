@@ -65,7 +65,7 @@ PlanetScaleのwebサイト上でDBを作り、github actionsの認証で使うse
 
 ## github actionsのworkflowファイル作成
 完成版
-```yml
+```yaml
 name: Deploy Preview Environment
 
 on:
@@ -793,7 +793,7 @@ export const auth = betterAuth({
 また、Cloud Runのタグも削除しておくことで、無駄にURLが増えていくことを防げる。
 ちなみにタグだけでなくリビジョンの削除もしようと思ったが、最新リビジョンは削除できないという仕様によりできなかった。
 まあ金かかるわけではないので消す必要もないとは思う。
-```yml
+```yaml
 name: Cleanup Preview Environment
 
 on:
