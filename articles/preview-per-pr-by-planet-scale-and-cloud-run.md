@@ -714,6 +714,10 @@ export const oAuthRedirectProxy = (opts: OAuthRedirectProxyOptions) => {
 };
 ```
 :::
+:::message
+しっかり検証できてるわけではないので、このpluginを使用するには注意が必要。
+本番環境の動作に影響がないことは確認したつもり。
+:::
 
 コメントにも書いてあるが、やっていることは、単純である。
 1. preview環境でログイン。このときstateに暗号化したcallbackURLをセットする
@@ -782,11 +786,6 @@ export const auth = betterAuth({
 
 :::message
 この自作pluginや元のoauth-proxy pluginにも言えることだが、暗号化に使うsecretが本番とpreviewで同じである必要がある。これはリスクがあるので、本番運用するなら、検証環境のマスターのようなサーバーを常時立てておいて、それをproxyとして使うのが良いだろう。（それやるならシンプルなproxyサーバーを立てるだけでいいだろとは思う）
-:::
-
-:::message
-しっかり検証できてるわけではないので、このpluginを使用するには注意が必要。
-本番環境の動作に影響がないことは確認したつもり。
 :::
 
 ## cleanupのworkflowを作成する
